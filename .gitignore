@@ -1,0 +1,23 @@
+# Data & Sensitive Information
+data.json
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Environment variables & local configurations
+.env
+.env.local
+
+# IDE & Editor settings
+.vscode/
+.idea/
+*.swp
+*.swo
