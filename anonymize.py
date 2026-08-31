@@ -54,6 +54,21 @@ def get_default_operators() -> Dict[str, OperatorConfig]:
         "LOCATION": OperatorConfig("replace", {
             "new_value": "<REDACTED>"
         }),
+        # Email: mask prefix sebelum domain
+        "EMAIL_ADDRESS": OperatorConfig("mask", {
+            "type": "mask",
+            "masking_char": "*",
+            "chars_to_mask": 6,
+            "from_end": False
+        }),
+        # IP Address: replace
+        "IP_ADDRESS": OperatorConfig("replace", {
+            "new_value": "[REDACTED_IP]"
+        }),
+        # Date Time: replace
+        "DATE_TIME": OperatorConfig("replace", {
+            "new_value": "[REDACTED_DATETIME]"
+        }),
         # RRN: sensor 6 digit awal
         "RRN": OperatorConfig("mask", {
             "type": "mask",

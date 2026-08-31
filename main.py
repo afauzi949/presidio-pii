@@ -1,10 +1,10 @@
 import json
 from typing import Dict, Any, List, Optional
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import uvicorn
 
-from analyzer import analyze_text
+from analyzer import analyze_text, entities
 from anonymize import anonymize_text
 
 # ==========================================
@@ -18,29 +18,59 @@ app = FastAPI(
 
 class AnalyzeRequest(BaseModel):
     text: str
-    entities: Optional[List[str]] = None
+    entities: Optional[List[str]] = Field(
+        default=None,
+        description="Daftar entitas yang ingin dianalisis. Jika None, menggunakan DEFAULT_ACTIVE_ENTITIES."
+    )
     language: str = "en"
     score_threshold: float = 0.5
 
 class AnonymizeRequest(BaseModel):
     text: str
-    entities: Optional[List[str]] = None
+    entities: Optional[List[str]] = Field(
+        default=None,
+        description="Daftar entitas yang ingin di-masking. Jika None, menggunakan DEFAULT_ACTIVE_ENTITIES."
+    )
     language: str = "en"
+    score_threshold: float = 0.5
 
 class ProcessJSONRequest(BaseModel):
     data: Any
+    entities: Optional[List[str]] = Field(
+        default=None,
+        description="Daftar entitas yang ingin difilter/dideteksi pada JSON. Jika None, menggunakan DEFAULT_ACTIVE_ENTITIES."
+    )
+    score_threshold: float = 0.5
 
 @app.get("/")
 def root():
-    return {"message": "Presidio PII Analyzer & Anonymizer Service is running."}
+    return {
+        "message": "Presidio PII Analyzer & Anonymizer Service is running.",
+        "endpoints": {
+            "docs": "/docs",
+            "entities": "/entities",
+            "analyze": "/analyze",
+            "anonymize": "/anonymize",
+            "process_json": "/process-json"
+        }
+    }
 
 @app.get("/health")
 def health_check():
     return {"status": "healthy"}
 
+@app.get("/entities")
+def api_get_entities():
+    """
+    Endpoint untuk melihat daftar entities yang dikonfigurasikan di dalam script analyzer.
+    """
+    return {
+        "configured_entities": entities
+    }
+
 @app.post("/analyze")
 def api_analyze(request: AnalyzeRequest):
-    """Endpoint untuk mendeteksi entitas PII dalam teks."""
+    """Endpoint untuk mendeteksi entitas PII dalam teks (mendukung filter `entities=['...']`)."""
     try:
         results = analyze_text(
             text=request.text,
@@ -50,6 +80,7 @@ def api_analyze(request: AnalyzeRequest):
         )
         return {
             "total_entities": len(results),
+            "entities_filter_applied": request.entities if request.entities is not None else entities,
             "results": [
                 {
                     "entity_type": res.entity_type,
@@ -66,12 +97,13 @@ def api_analyze(request: AnalyzeRequest):
 
 @app.post("/anonymize")
 def api_anonymize(request: AnonymizeRequest):
-    """Endpoint untuk menganalisis dan langsung melakukan masking pada teks."""
+    """Endpoint untuk menganalisis dan langsung melakukan masking pada teks (mendukung filter `entities=['...']`)."""
     try:
         results = analyze_text(
             text=request.text,
             entities=request.entities,
-            language=request.language
+            language=request.language,
+            score_threshold=request.score_threshold
         )
         anonymized = anonymize_text(
             text=request.text,
@@ -80,17 +112,22 @@ def api_anonymize(request: AnonymizeRequest):
         return {
             "original_text": request.text,
             "anonymized_text": anonymized.text,
-            "entities_found": len(results)
+            "entities_found": len(results),
+            "entities_filter_applied": request.entities if request.entities is not None else entities
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/process-json")
 def api_process_json(request: ProcessJSONRequest):
-    """Endpoint untuk menerima payload JSON, mendeteksi PII, dan menghasilkan versi yang disamarkan."""
+    """Endpoint untuk menerima payload JSON, mendeteksi PII berdasarkan filter entitas, dan menghasilkan versi yang disamarkan."""
     try:
         text_payload = json.dumps(request.data, indent=2)
-        results = analyze_text(text=text_payload)
+        results = analyze_text(
+            text=text_payload,
+            entities=request.entities,
+            score_threshold=request.score_threshold
+        )
         anonymized = anonymize_text(text=text_payload, analyzer_results=results)
         try:
             parsed_masked_json = json.loads(anonymized.text)
@@ -99,7 +136,8 @@ def api_process_json(request: ProcessJSONRequest):
 
         return {
             "masked_data": parsed_masked_json,
-            "entities_detected": len(results)
+            "entities_detected": len(results),
+            "entities_filter_applied": request.entities if request.entities is not None else entities
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

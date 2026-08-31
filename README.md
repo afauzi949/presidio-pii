@@ -6,6 +6,9 @@ Layanan API dan modul pemrosesan data berbasis **Microsoft Presidio** & **FastAP
 
 ## 📌 Fitur Utama
 
+- **Definisi & Filter Entitas yang Transparan**:
+  - Semua entitas didefinisikan secara eksplisit (baik entitas bawaan Microsoft Presidio maupun Custom Regex).
+  - Mendukung penyaringan entitas spesifik melalui parameter `entities=["PHONE_NUMBER", "CARD_PAN", ...]` baik di modul Python maupun REST API.
 - **Deteksi Entitas PII Standar & Kustom**:
   - `PHONE_NUMBER`: Nomor HP Indonesia (`+628...`, `628...`, `08...`).
   - `ACCOUNT_NUMBER`: Nomor Rekening Bank (10–16 digit).
@@ -13,9 +16,9 @@ Layanan API dan modul pemrosesan data berbasis **Microsoft Presidio** & **FastAP
   - `PIN`: PIN numerik (4–6 digit).
   - `PIN_BLOCK`: Encrypted PIN Block (format hexadecimal 6–16 karakter).
   - `RRN`: Retrieval Reference Number (standar ISO 8583 field 37, 12 digit).
-  - `PERSON` & `LOCATION`: Nama orang dan lokasi geografis.
-- **Strategi Masking Fleksibel**: Masking karakter (`*`), redaksi nilai pengganti (`[REDACTED_PIN]`, `[ENCRYPTED_PIN]`, `<REDACTED>`), dan partial masking (digit depan/belakang).
-- **FastAPI Endpoints**: REST API siap pakai dengan auto-generated Swagger UI / OpenAPI docs.
+  - `PERSON`, `LOCATION`, `EMAIL_ADDRESS`, `IP_ADDRESS`, `DATE_TIME`: Entitas bawaan Microsoft Presidio.
+- **Strategi Masking Fleksibel**: Masking karakter (`*`), redaksi nilai pengganti (`[REDACTED_PIN]`, `[ENCRYPTED_PIN]`, `<REDACTED>`, `[REDACTED_IP]`), dan partial masking.
+- **FastAPI Endpoints**: REST API siap pakai dengan auto-generated Swagger UI / OpenAPI docs & endpoint `GET /entities`.
 - **Dukungan Batch Payload JSON**: Endpoint `/process-json` untuk langsung memproses dan menyamarkan objek JSON hierarkis.
 
 ---
@@ -27,7 +30,7 @@ Layanan API dan modul pemrosesan data berbasis **Microsoft Presidio** & **FastAP
 ├── README.md           # Dokumentasi proyek
 ├── requirements.txt    # Daftar dependensi Python
 ├── costumregex.py      # Definisi custom pattern recognizer (RegEx & Konteks)
-├── analyzer.py         # Inisialisasi AnalyzerEngine Presidio & fungsi analisis
+├── analyzer.py         # Inisialisasi AnalyzerEngine, daftar entitas & fungsi analisis
 ├── anonymize.py        # Inisialisasi AnonymizerEngine Presidio & aturan operator masking
 ├── main.py             # Server FastAPI dan routing endpoint
 └── data.json           # Contoh data payload transaksi (diabaikan oleh git)
@@ -58,7 +61,7 @@ python3 -m spacy download en_core_web_sm
 ## 💻 Menjalankan Layanan
 
 ### A. Menjalankan Server FastAPI
-Jalankan file [main.py](file:///home/ubuntu/magang/presidio/spacy/main.py):
+Jalankan file [main.py]:
 ```bash
 python3 main.py
 ```
@@ -89,24 +92,66 @@ Layanan akan berjalan di:
 
 ## 📡 Dokumentasi Endpoint API
 
-### 1. Health Check
-- **URL**: `GET /health`
+### 1. Daftar Entitas Tersedia (`GET /entities`)
+Melihat seluruh daftar entitas yang didukung (Custom, Bawaan Presidio, dan Default Aktif).
+- **URL**: `GET /entities`
 - **Response**:
   ```json
   {
-    "status": "healthy"
+    "custom_entities": [
+      "PHONE_NUMBER",
+      "ACCOUNT_NUMBER",
+      "CARD_PAN",
+      "PIN",
+      "PIN_BLOCK",
+      "RRN"
+    ],
+    "builtin_entities": [
+      "PERSON",
+      "LOCATION",
+      "EMAIL_ADDRESS",
+      "IP_ADDRESS",
+      "DATE_TIME",
+      "CREDIT_CARD",
+      "CRYPTO",
+      "IBAN_CODE",
+      "URL",
+      "NRP",
+      "MEDICAL_LICENSE",
+      "MAC_ADDRESS",
+      "US_BANK_NUMBER",
+      "US_DRIVER_LICENSE",
+      "US_ITIN",
+      "US_PASSPORT",
+      "US_SSN",
+      "UK_NHS"
+    ],
+    "default_active_entities": [
+      "PHONE_NUMBER",
+      "ACCOUNT_NUMBER",
+      "CARD_PAN",
+      "PIN",
+      "PIN_BLOCK",
+      "RRN",
+      "PERSON",
+      "LOCATION",
+      "EMAIL_ADDRESS",
+      "IP_ADDRESS",
+      "DATE_TIME"
+    ]
   }
   ```
 
 ---
 
 ### 2. Analyze Text (`POST /analyze`)
-Mendeteksi entitas PII dalam teks mentah beserta skor probabilitas dan posisi indexnya.
+Mendeteksi entitas PII dalam teks mentah. Dapat memfilter entitas spesifik melalui parameter `entities`.
 
-- **Request Body**:
+- **Request Body (Contoh Filter Entitas Tertentu)**:
   ```json
   {
     "text": "Nama: Budi Santoso, HP: +6281234567890, PAN: 4000123456789010, Rek: 109823471209",
+    "entities": ["PHONE_NUMBER", "CARD_PAN"],
     "language": "en",
     "score_threshold": 0.5
   }
@@ -115,35 +160,22 @@ Mendeteksi entitas PII dalam teks mentah beserta skor probabilitas dan posisi in
 - **Contoh Response**:
   ```json
   {
-    "total_entities": 4,
+    "total_entities": 2,
+    "entities_filter_applied": ["PHONE_NUMBER", "CARD_PAN"],
     "results": [
       {
         "entity_type": "CARD_PAN",
         "start": 44,
         "end": 60,
-        "score": 0.85,
+        "score": 1.0,
         "value": "4000123456789010"
       },
       {
         "entity_type": "PHONE_NUMBER",
         "start": 24,
         "end": 38,
-        "score": 0.85,
+        "score": 1.0,
         "value": "+6281234567890"
-      },
-      {
-        "entity_type": "ACCOUNT_NUMBER",
-        "start": 67,
-        "end": 79,
-        "score": 0.75,
-        "value": "109823471209"
-      },
-      {
-        "entity_type": "PERSON",
-        "start": 6,
-        "end": 18,
-        "score": 0.85,
-        "value": "Budi Santoso"
       }
     ]
   }
@@ -152,12 +184,13 @@ Mendeteksi entitas PII dalam teks mentah beserta skor probabilitas dan posisi in
 ---
 
 ### 3. Anonymize Text (`POST /anonymize`)
-Mendeteksi dan langsung melakukan masking pada teks sesuai aturan operator yang dikonfigurasi.
+Mendeteksi dan langsung melakukan masking pada teks sesuai aturan operator yang dikonfigurasi (mendukung filter `entities`).
 
 - **Request Body**:
   ```json
   {
-    "text": "Nama: Budi Santoso, HP: +6281234567890, PAN: 4000123456789010, Rek: 109823471209"
+    "text": "Nama: Budi Santoso, HP: +6281234567890, PAN: 4000123456789010, Rek: 109823471209",
+    "entities": ["PHONE_NUMBER", "CARD_PAN"]
   }
   ```
 
@@ -165,8 +198,9 @@ Mendeteksi dan langsung melakukan masking pada teks sesuai aturan operator yang 
   ```json
   {
     "original_text": "Nama: Budi Santoso, HP: +6281234567890, PAN: 4000123456789010, Rek: 109823471209",
-    "anonymized_text": "Nama: ************, HP: +628123456****, PAN: ************9010, Rek: 109823******",
-    "entities_found": 4
+    "anonymized_text": "Nama: Budi Santoso, HP: +628123456****, PAN: ************9010, Rek: 109823471209",
+    "entities_found": 2,
+    "entities_filter_applied": ["PHONE_NUMBER", "CARD_PAN"]
   }
   ```
 
@@ -187,24 +221,8 @@ Menerima payload objek/array JSON transaksi dan mengembalikan versi JSON yang te
         "account_number": "109823471209",
         "pin_block": "F4B892A1C30E4D5F"
       }
-    }
-  }
-  ```
-
-- **Contoh Response**:
-  ```json
-  {
-    "masked_data": {
-      "rrn": "******104829",
-      "customer": {
-        "name": "************",
-        "phone_number": "+628123456****",
-        "pan": "************9010",
-        "account_number": "109823******",
-        "pin_block": "[ENCRYPTED_PIN]"
-      }
     },
-    "entities_detected": 5
+    "entities": ["CARD_PAN", "PHONE_NUMBER", "PIN_BLOCK"]
   }
   ```
 
@@ -212,13 +230,16 @@ Menerima payload objek/array JSON transaksi dan mengembalikan versi JSON yang te
 
 ## 🛡️ Rincian Aturan Masking & Recognizer
 
-| Entitas | Deskripsi Pola | Default Operator / Masking |
-|---|---|---|
-| `PHONE_NUMBER` | Regex format HP Indo (`+628..`, `08..`) | Masking 4 digit terakhir (`*`) |
-| `CARD_PAN` | Visa, Mastercard, JCB, Amex (13–19 digit) | Masking 12 digit awal (`*`), sisa 4 digit terakhir |
-| `ACCOUNT_NUMBER` | Nomor rekening bank (10–16 digit numerik) | Masking 6 digit terakhir (`*`) |
-| `PIN` | PIN otentikasi (4–6 digit numerik) | Replace: `[REDACTED_PIN]` |
-| `PIN_BLOCK` | Encrypted PIN Block (6–16 Hex digit) | Replace: `[ENCRYPTED_PIN]` |
-| `RRN` | Retrieval Ref No ISO 8583 (12 digit) | Masking 6 digit pertama (`*`) |
-| `PERSON` | Nama individu (dari Spacy NER) | Full masking karakter (`*`) |
-| `LOCATION` | Lokasi / alamat (dari Spacy NER) | Replace: `<REDACTED>` |
+| Entitas | Tipe | Deskripsi Pola | Default Operator / Masking |
+|---|---|---|---|
+| `PHONE_NUMBER` | Custom ID | Regex format HP Indo (`+628..`, `08..`) | Masking 4 digit terakhir (`*`) |
+| `CARD_PAN` | Custom | Visa, Mastercard, JCB, Amex (13–19 digit) | Masking 12 digit awal (`*`), sisa 4 digit terakhir |
+| `ACCOUNT_NUMBER` | Custom | Nomor rekening bank (10–16 digit numerik) | Masking 6 digit terakhir (`*`) |
+| `PIN` | Custom | PIN otentikasi (4–6 digit numerik) | Replace: `[REDACTED_PIN]` |
+| `PIN_BLOCK` | Custom | Encrypted PIN Block (6–16 Hex digit) | Replace: `[ENCRYPTED_PIN]` |
+| `RRN` | Custom | Retrieval Ref No ISO 8583 (12 digit) | Masking 6 digit pertama (`*`) |
+| `PERSON` | Presidio Built-in | Nama individu (dari Spacy NER) | Full masking karakter (`*`) |
+| `LOCATION` | Presidio Built-in | Lokasi / alamat (dari Spacy NER) | Replace: `<REDACTED>` |
+| `EMAIL_ADDRESS` | Presidio Built-in | Format email standar | Masking prefix 6 karakter |
+| `IP_ADDRESS` | Presidio Built-in | IP v4 / v6 | Replace: `[REDACTED_IP]` |
+| `DATE_TIME` | Presidio Built-in | Format tanggal / waktu | Replace: `[REDACTED_DATETIME]` |

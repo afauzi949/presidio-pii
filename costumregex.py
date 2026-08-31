@@ -11,7 +11,7 @@ def get_custom_recognizers():
     id_phone_pattern = Pattern(
         name="id_phone_pattern",
         regex=r"(?:\+62|62|0)8[1-9][0-9]{7,10}\b",
-        score=0.85
+        score=0.8
     )
     id_phone_recognizer = PatternRecognizer(
         supported_entity="PHONE_NUMBER",
@@ -25,7 +25,7 @@ def get_custom_recognizers():
     account_number_pattern = Pattern(
         name="account_number_pattern",
         regex=r"\b\d{10,16}\b",
-        score=0.75
+        score=0.4
     )
     account_number_recognizer = PatternRecognizer(
         supported_entity="ACCOUNT_NUMBER",
@@ -44,12 +44,12 @@ def get_custom_recognizers():
         Pattern(
             name="pan_visa",
             regex=r"\b4[0-9]{12}(?:[0-9]{3})?\b",
-            score=0.85
+            score=0.75
         ),
         Pattern(
             name="pan_mastercard",
             regex=r"\b(?:5[1-5][0-9]{14}|222[1-9][0-9]{12}|22[3-9][0-9]{13}|2[3-6][0-9]{14}|27[01][0-9]{13}|2720[0-9]{12})\b",
-            score=0.85
+            score=0.75
         ),
         Pattern(
             name="pan_jcb",
@@ -59,12 +59,12 @@ def get_custom_recognizers():
         Pattern(
             name="pan_amex",
             regex=r"\b3[47][0-9]{13}\b",
-            score=0.85
+            score=0.75
         ),
         Pattern(
             name="pan_generic",
             regex=r"\b[0-9]{13,19}\b",
-            score=0.75
+            score=0.4
         ),
     ]
     pan_recognizer = PatternRecognizer(
@@ -79,7 +79,7 @@ def get_custom_recognizers():
     pin_pattern = Pattern(
         name="pin_pattern",
         regex=r"\b[0-9]{4,6}\b",
-        score=0.75
+        score=0.3
     )
     pin_recognizer = PatternRecognizer(
         supported_entity="PIN",
@@ -93,7 +93,7 @@ def get_custom_recognizers():
     pin_block_pattern = Pattern(
         name="pin_block_pattern",
         regex=r"\b[A-Fa-f0-9]{6,16}\b",
-        score=0.80
+        score=0.5
     )
     pin_block_recognizer = PatternRecognizer(
         supported_entity="PIN_BLOCK",
