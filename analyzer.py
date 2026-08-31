@@ -8,7 +8,8 @@ from costumregex import get_custom_recognizers
 entities = [
     # --- Entitas Bawaan Microsoft Presidio ---
     "PERSON",             
-    "LOCATION",          
+    "LOCATION",
+    "EMAIL_ADDRESS",          
     
     # ---Costum regex ---
     "PHONE_NUMBER",       
