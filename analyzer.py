@@ -1,6 +1,7 @@
 from typing import List, Optional
 from presidio_analyzer import AnalyzerEngine
 from costumregex import get_custom_recognizers
+from presidio_analyzer.nlp_engine import NlpEngineProvider
 
 # ==============================================================================
 # DEFINISI DAFTAR ENTITAS YANG AKAN DIIKUTSERTAKAN
@@ -23,8 +24,22 @@ entities = [
 def create_analyzer_engine() -> AnalyzerEngine:
     """
     Inisialisasi AnalyzerEngine Presidio dan mendaftarkan custom regex recognizers.
+    Mendukung bahasa Inggris ('en') dan Indonesia ('id').
     """
-    engine = AnalyzerEngine()
+    configuration = {
+        "nlp_engine_name": "spacy",
+        "models": [
+            {"lang_code": "en", "model_name": "en_core_web_lg"},
+            {"lang_code": "id", "model_name": "id_ner_spacy_indonesian"}
+        ]
+    }
+    provider = NlpEngineProvider(nlp_configuration=configuration)
+    nlp_engine = provider.create_engine()
+    
+    engine = AnalyzerEngine(
+        nlp_engine=nlp_engine, 
+        supported_languages=["en", "id"]
+    )
     for recognizer in get_custom_recognizers():
         engine.registry.add_recognizer(recognizer)
     return engine
@@ -61,13 +76,13 @@ def analyze_text(
     )
 
 if __name__ == "__main__":
-    # Test Analyzer mandiri
-    sample_text = "Nama: Budi Santoso, Email: budi@example.com, HP: +6281234567890, PAN: 4000123456789010, Rek: 109823471209"
+    # Test Analyzer mandiri (Bahasa Indonesia)
+    sample_text = "Nama: Budi Santoso, Email: budi@example.com, HP: +6281234567890, PAN: 4000123456789010, Rek: 109823471209, Lokasi: Jakarta"
     
     print("=== Daftar entities yang diatur di dalam script ===")
     print(entities)
     
-    print("\n=== Hasil Analisis Sesuai entities Terpasang ===")
-    results = analyze_text(sample_text)
+    print("\n=== Hasil Analisis Sesuai entities Terpasang (Bahasa Indonesia) ===")
+    results = analyze_text(sample_text, language="id")
     for res in results:
         print(f"- {res.entity_type:<15} (score: {res.score:.2f}): {sample_text[res.start:res.end]}")
