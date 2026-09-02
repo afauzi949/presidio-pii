@@ -10,7 +10,8 @@ entities = [
     # --- Entitas Bawaan Microsoft Presidio ---
     "PERSON",             
     "LOCATION",
-    "EMAIL_ADDRESS",          
+    "EMAIL_ADDRESS",
+    "GPE",          
     
     # ---Costum regex ---
     "PHONE_NUMBER",       

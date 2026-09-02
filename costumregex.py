@@ -13,12 +13,13 @@ def get_custom_recognizers():
         regex=r"(?:\+62|62|0)8[1-9][0-9]{7,10}\b",
         score=0.8
     )
-    id_phone_recognizer = PatternRecognizer(
-        supported_entity="PHONE_NUMBER",
-        patterns=[id_phone_pattern],
-        context=["phone", "phone_number", "telepon", "hp", "telp", "wa", "kontak"]
-    )
-    recognizers.append(id_phone_recognizer)
+    for lang in ["en", "id"]:
+        recognizers.append(PatternRecognizer(
+            supported_entity="PHONE_NUMBER",
+            patterns=[id_phone_pattern],
+            context=["phone", "phone_number", "telepon", "hp", "telp", "wa", "kontak"],
+            supported_language=lang
+        ))
 
     # 2. Bank Account Number / Nomor Rekening (ACCOUNT_NUMBER)
     # contoh data : 1234567890, 1234567890123456
@@ -27,12 +28,13 @@ def get_custom_recognizers():
         regex=r"\b\d{10,16}\b",
         score=0.4
     )
-    account_number_recognizer = PatternRecognizer(
-        supported_entity="ACCOUNT_NUMBER",
-        patterns=[account_number_pattern],
-        context=["account_number", "rekening", "no_rek", "norek", "acc_num", "destination_account_number"]
-    )
-    recognizers.append(account_number_recognizer)
+    for lang in ["en", "id"]:
+        recognizers.append(PatternRecognizer(
+            supported_entity="ACCOUNT_NUMBER",
+            patterns=[account_number_pattern],
+            context=["account_number", "rekening", "no_rek", "norek", "acc_num", "destination_account_number"],
+            supported_language=lang
+        ))
 
     # 3. Card Primary Account Number (CARD_PAN) - ISO/IEC 7812
     # - Visa: 13 atau 16 digit, awalan 4 (contoh: 4111111111111111)
@@ -67,12 +69,13 @@ def get_custom_recognizers():
             score=0.4
         ),
     ]
-    pan_recognizer = PatternRecognizer(
-        supported_entity="CARD_PAN",
-        patterns=pan_patterns,
-        context=["pan", "card_number", "nomor_kartu", "debit_card", "credit_card", "visa", "mastercard", "jcb", "amex", "kartu"]
-    )
-    recognizers.append(pan_recognizer)
+    for lang in ["en", "id"]:
+        recognizers.append(PatternRecognizer(
+            supported_entity="CARD_PAN",
+            patterns=pan_patterns,
+            context=["pan", "card_number", "nomor_kartu", "debit_card", "credit_card", "visa", "mastercard", "jcb", "amex", "kartu"],
+            supported_language=lang
+        ))
 
     # 4. PIN (Personal Identification Number - 4-6 digit numeric)
     # contoh data : 1234, 123456
@@ -81,12 +84,13 @@ def get_custom_recognizers():
         regex=r"\b[0-9]{4,6}\b",
         score=0.3
     )
-    pin_recognizer = PatternRecognizer(
-        supported_entity="PIN",
-        patterns=[pin_pattern],
-        context=["pin", "pin_number", "atm_pin", "personal_identification_number", "passcode", "kode_pin"]
-    )
-    recognizers.append(pin_recognizer)
+    for lang in ["en", "id"]:
+        recognizers.append(PatternRecognizer(
+            supported_entity="PIN",
+            patterns=[pin_pattern],
+            context=["pin", "pin_number", "atm_pin", "personal_identification_number", "passcode", "kode_pin"],
+            supported_language=lang
+        ))
 
     # 5. PIN Block (6-16 Hex Character)
     # contoh data : abcd12, F4B892A1C30E4D5F
@@ -95,12 +99,13 @@ def get_custom_recognizers():
         regex=r"\b[A-Fa-f0-9]{6,16}\b",
         score=0.5
     )
-    pin_block_recognizer = PatternRecognizer(
-        supported_entity="PIN_BLOCK",
-        patterns=[pin_block_pattern],
-        context=["pin_block", "pinblock", "encrypted_pin"]
-    )
-    recognizers.append(pin_block_recognizer)
+    for lang in ["en", "id"]:
+        recognizers.append(PatternRecognizer(
+            supported_entity="PIN_BLOCK",
+            patterns=[pin_block_pattern],
+            context=["pin_block", "pinblock", "encrypted_pin"],
+            supported_language=lang
+        ))
 
     # 6. RRN (Retrieval Reference Number - ISO 8583 Field 37, 12 digits)
     # contoh data : 250831123456, 123456789012
@@ -109,11 +114,12 @@ def get_custom_recognizers():
         regex=r"\b[0-9]{12}\b",
         score=0.75
     )
-    rrn_recognizer = PatternRecognizer(
-        supported_entity="RRN",
-        patterns=[rrn_pattern],
-        context=["rrn", "ref_num", "reference_number", "retrieval_reference_number", "iso8583"]
-    )
-    recognizers.append(rrn_recognizer)
+    for lang in ["en", "id"]:
+        recognizers.append(PatternRecognizer(
+            supported_entity="RRN",
+            patterns=[rrn_pattern],
+            context=["rrn", "ref_num", "reference_number", "retrieval_reference_number", "iso8583"],
+            supported_language=lang
+        ))
 
     return recognizers
