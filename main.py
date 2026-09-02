@@ -6,6 +6,7 @@ import uvicorn
 
 from analyzer import analyze_text, entities
 from anonymize import anonymize_text
+from credential_masker import mask_credentials, mask_text as mask_credentials_in_text
 
 # ==========================================
 # Konfigurasi FastAPI Application
@@ -97,16 +98,22 @@ def api_analyze(request: AnalyzeRequest):
 
 @app.post("/anonymize")
 def api_anonymize(request: AnonymizeRequest):
-    """Endpoint untuk menganalisis dan langsung melakukan masking pada teks (mendukung filter `entities=['...']`)."""
+    """Endpoint untuk menganalisis dan langsung melakukan masking pada teks
+    (mendukung filter `entities=['...']`). Menjalankan credential masking
+    (password/username/IP/authorization/connection-string) terlebih dahulu,
+    baru dilanjutkan PII masking via Presidio."""
     try:
+        # Pre-pass: credential masking deterministik (regex, tanpa Presidio)
+        text_pre_masked = mask_credentials_in_text(request.text)
+
         results = analyze_text(
-            text=request.text,
+            text=text_pre_masked,
             entities=request.entities,
             language=request.language,
             score_threshold=request.score_threshold
         )
         anonymized = anonymize_text(
-            text=request.text,
+            text=text_pre_masked,
             analyzer_results=results
         )
         return {
@@ -120,9 +127,13 @@ def api_anonymize(request: AnonymizeRequest):
 
 @app.post("/process-json")
 def api_process_json(request: ProcessJSONRequest):
-    """Endpoint untuk menerima payload JSON, mendeteksi PII berdasarkan filter entitas, dan menghasilkan versi yang disamarkan."""
+    """Endpoint untuk menerima payload JSON, mendeteksi PII berdasarkan filter entitas, dan menghasilkan versi yang disamarkan.
+    Menjalankan credential masking (rekursif struktur JSON) terlebih dahulu, baru dilanjutkan PII masking via Presidio."""
     try:
-        text_payload = json.dumps(request.data, indent=2)
+        # Pre-pass: credential masking rekursif pada struktur JSON (dict/list)
+        pre_masked_data = mask_credentials(request.data)
+
+        text_payload = json.dumps(pre_masked_data, indent=2)
         results = analyze_text(
             text=text_payload,
             entities=request.entities,
